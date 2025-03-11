@@ -10,14 +10,41 @@ helpful_links = [
 ]
 
 # Write directly to the app
-st.title("My Parents New Healthy Diner")
-st.title("Breakfast Menu")
+st.title(":cup_with_straw: Customize your smoothie :cup_with_straw:")
 st.write(
-    f"""
-    Omega 3 & Blue Berry Oatmeal
-
-    Kale, Spinach & Rocket Smoothie
-    
-    Hard-Boiled Free-Range Egg
-    """
+    f"""Choose the fruits you want in your custom Smoothie!"""
 )
+
+name_on_order = st.text_input('Name of Smoothie:')
+st.write('The name of your smoothie will be', name_on_order)
+
+# Get the current credentials
+cnx = st.connection("snowflake")
+session = cnx.session()
+my_dataframe = session.table("smoothies.public.fruit_options").select(col('FRUIT_NAME'))
+# st.dataframe(data=my_dataframe, use_container_width=True)
+
+ingredients_list = st.multiselect(
+    'Choose up to 5 ingredients: ',
+    my_dataframe,
+    max_selections=5
+)
+
+if ingredients_list:
+    # st.write(ingredients_list)
+    # st.text(ingredients_list)
+
+    ingredients_string = ''
+    for fruit_chosen in ingredients_list:
+        ingredients_string +=  fruit_chosen + ' '
+
+    st.write(ingredients_string)
+
+    my_insert_stmt = """
+        insert into smoothies.public.orders(ingredients, name_on_order)
+        values ('""" + ingredients_string + """','""" + name_on_order + """')"""
+
+    time_to_insert = st.button('Submit Order')
+    if time_to_insert:
+        session.sql(my_insert_stmt).collect()
+        st.success(f'Your Smoothie is ordered, {name_on_order}!', icon="✅")
